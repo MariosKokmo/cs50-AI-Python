@@ -196,22 +196,26 @@ class MinesweeperAI():
         # we need to find the neighbors of the cell and for those that the state is undetermined
         # we will create a knowledge sentence including those neighbors and the count
         neighbors = set(self.find_neighbors(cell))
-       
-        mine_count = count
+        
+        update_count = count
         neighbors_to_remove = set()
         for neighbor in neighbors:
             if neighbor in self.mines:
                 neighbors_to_remove.add(neighbor)
-                mine_count -= 1
-                mine_count = max(0,mine_count)
+                update_count -= 1
+                update_count = max(0,update_count)
             if neighbor in self.safes:
                 neighbors_to_remove.add(neighbor)
         neighbors -= neighbors_to_remove
         
-        
-        new_sentence = Sentence(neighbors,mine_count)
+        new_sentence = Sentence(neighbors,update_count)
         self.knowledge.append(new_sentence)
         
+        #simplify the knowledge
+        # Remove empty knowledge sentences
+        for sentence in self.knowledge:
+            if len(sentence.cells)==0:
+                self.knowledge.remove(sentence)
         
         # mark any additional cells as safe or as mines if it can be concluded based on the AI's knowledge base
         new_mines = set()
@@ -227,16 +231,10 @@ class MinesweeperAI():
             self.mark_safe(safe)
             
             
-        #simplify the knowledge
-        # Remove empty knowledge sentences
-        for sentence in self.knowledge:
-            if sentence.cells == set():
-                self.knowledge.remove(sentence)
-            
         # add any new sentences to the AI's knowledge base if they can be inferred from existing knowledge (using subset method)
         knowledge_to_add = []
         for sentence in self.knowledge:
-            if new_sentence.cells and sentence.cells != new_sentence.cells:
+             if new_sentence.cells and sentence.cells != new_sentence.cells:
                 if sentence.cells.issubset(new_sentence.cells):
                     knowledge_to_add.append(Sentence(new_sentence.cells-sentence.cells, new_sentence.count-sentence.count))
                 if new_sentence.cells.issubset(sentence.cells):
@@ -267,20 +265,33 @@ class MinesweeperAI():
                 neighbors.append((i,j+1))
                 neighbors.append((i+1,j))
                 neighbors.append((i+1,j+1))
-            if j==self.width -1:
+            elif j==self.width -1:
                 neighbors.append((i,j-1))
                 neighbors.append((i+1,j))
                 neighbors.append((i+1,j-1))
+            else:
+                neighbors.append((i,j+1))
+                neighbors.append((i,j-1))
+                neighbors.append((i+1,j-1))
+                neighbors.append((i+1,j+1))
+                neighbors.append((i+1,j))
         
         if i==self.height-1:
             if j==0:
                 neighbors.append((i,j+1))
                 neighbors.append((i-1,j))
                 neighbors.append((i-1,j+1))
-            if j==self.width -1:
+            elif j==self.width -1:
                 neighbors.append((i,j-1))
                 neighbors.append((i-1,j))
                 neighbors.append((i-1,j-1))
+            else:
+                neighbors.append((i,j+1))
+                neighbors.append((i,j-1))
+                neighbors.append((i-1,j-1))
+                neighbors.append((i-1,j+1))
+                neighbors.append((i-1,j))
+                
         return neighbors
 
     def make_safe_move(self):
